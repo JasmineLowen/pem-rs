@@ -360,6 +360,11 @@ impl fmt::Display for Pem {
 
 /// Parses a single PEM-encoded data from a data-type that can be dereferenced as a [u8].
 ///
+/// NOTE: The data doesn't have to be sanitized, meaning random garbage prefixes and suffixes are
+/// just ignored by the parser. The parser will fail if no PEM blob is found in the data. If
+/// multiple PEM blobs are in the input data, the parser will return only data of the first parsed
+/// blob.
+///
 /// # Example: parse PEM-encoded data from a Vec<u8>
 /// ```rust
 ///
@@ -400,6 +405,68 @@ impl fmt::Display for Pem {
 ///
 ///  let pem = parse(SAMPLE_STRING).unwrap();
 ///  assert_eq!(pem.tag(), "RSA PRIVATE KEY");
+/// ```
+///
+/// # Example: parse PEM-encoded data from a String with garbage prefix & suffix data
+/// ```rust
+///
+/// use pem::parse;
+///
+/// const SAMPLE: &'static str = "Hello, World!-----BEGIN RSA PRIVATE KEY-----
+/// MIIBPQIBAAJBAOsfi5AGYhdRs/x6q5H7kScxA0Kzzqe6WI6gf6+tc6IvKQJo5rQc
+/// dWWSQ0nRGt2hOPDO+35NKhQEjBQxPh/v7n0CAwEAAQJBAOGaBAyuw0ICyENy5NsO
+/// 2gkT00AWTSzM9Zns0HedY31yEabkuFvrMCHjscEF7u3Y6PB7An3IzooBHchsFDei
+/// AAECIQD/JahddzR5K3A6rzTidmAf1PBtqi7296EnWv8WvpfAAQIhAOvowIXZI4Un
+/// DXjgZ9ekuUjZN+GUQRAVlkEEohGLVy59AiEA90VtqDdQuWWpvJX0cM08V10tLXrT
+/// TTGsEtITid1ogAECIQDAaFl90ZgS5cMrL3wCeatVKzVUmuJmB/VAmlLFFGzK0QIh
+/// ANJGc7AFk4fyFD/OezhwGHbWmo/S+bfeAiIh2Ss2FxKJ
+/// -----END RSA PRIVATE KEY-----Goodbye, World!
+/// ";
+/// let SAMPLE_STRING: String = SAMPLE.into();
+///
+///  let pem = parse(SAMPLE_STRING).unwrap();
+///  assert_eq!(pem.tag(), "RSA PRIVATE KEY");
+/// ```
+///
+/// # Example: parse PEM-encoded data with two PEM blobs only parses first
+/// ```rust
+///
+/// use pem::parse;
+///
+/// const SAMPLE: &'static str = "-----BEGIN RSA PRIVATE KEY-----
+/// MIIBPQIBAAJBAOsfi5AGYhdRs/x6q5H7kScxA0Kzzqe6WI6gf6+tc6IvKQJo5rQc
+/// dWWSQ0nRGt2hOPDO+35NKhQEjBQxPh/v7n0CAwEAAQJBAOGaBAyuw0ICyENy5NsO
+/// 2gkT00AWTSzM9Zns0HedY31yEabkuFvrMCHjscEF7u3Y6PB7An3IzooBHchsFDei
+/// AAECIQD/JahddzR5K3A6rzTidmAf1PBtqi7296EnWv8WvpfAAQIhAOvowIXZI4Un
+/// DXjgZ9ekuUjZN+GUQRAVlkEEohGLVy59AiEA90VtqDdQuWWpvJX0cM08V10tLXrT
+/// TTGsEtITid1ogAECIQDAaFl90ZgS5cMrL3wCeatVKzVUmuJmB/VAmlLFFGzK0QIh
+/// ANJGc7AFk4fyFD/OezhwGHbWmo/S+bfeAiIh2Ss2FxKJ
+/// -----END RSA PRIVATE KEY-----
+/// -----BEGIN CERTIFICATE KEY-----
+/// MIIBPQIBAAJBAOsfi5AGYhdRs/x6q5H7kScxA0Kzzqe6WI6gf6+tc6IvKQJo5rQc
+/// dWWSQ0nRGt2hOPDO+35NKhQEjBQxPh/v7n0CAwEAAQJBAOGaBAyuw0ICyENy5NsO
+/// 2gkT00AWTSzM9Zns0HedY31yEabkuFvrMCHjscEF7u3Y6PB7An3IzooBHchsFDei
+/// AAECIQD/JahddzR5K3A6rzTidmAf1PBtqi7296EnWv8WvpfAAQIhAOvowIXZI4Un
+/// DXjgZ9ekuUjZN+GUQRAVlkEEohGLVy59AiEA90VtqDdQuWWpvJX0cM08V10tLXrT
+/// TTGsEtITid1ogAECIQDAaFl90ZgS5cMrL3wCeatVKzVUmuJmB/VAmlLFFGzK0QIh
+/// ANJGc7AFk4fyFD/OezhwGHbWmo/S+bfeAiIh2Ss2FxKJ
+/// -----END CERTIFICATE KEY-----
+/// ";
+/// let SAMPLE_STRING: String = SAMPLE.into();
+///
+///  let pem = parse(SAMPLE_STRING).unwrap();
+///  assert_eq!(pem.tag(), "RSA PRIVATE KEY");
+/// ```
+///
+/// # Example: parsing invalid input data without any PEM-encoded data fails with an error
+///
+/// ```rust
+/// use pem::parse;
+///
+/// const SAMPLE: &'static str = "invalid";
+///  let SAMPLE_STRING: Vec<u8> = SAMPLE.into();
+///
+///  let error = parse(SAMPLE_STRING).expect_err("DOES error!");
 /// ```
 pub fn parse<B: AsRef<[u8]>>(input: B) -> Result<Pem> {
     parse_captures(input.as_ref())
