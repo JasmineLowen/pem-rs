@@ -409,6 +409,13 @@ pub fn parse<B: AsRef<[u8]>>(input: B) -> Result<Pem> {
 
 /// Parses a set of PEM-encoded data from a data-type that can be dereferenced as a [u8].
 ///
+/// # NOTE: A fair bit of warning!
+///
+/// Please note that any parts of the input data not representing PEM-encoded data will be ignored.
+/// This also has the effect that parsing input data which doesn't contain any PEM-encoded data at
+/// all will return `Ok([])` instead of an error. Your code should guard against this case with
+/// extra checks if you would expect an error! See examples
+///
 /// # Example: parse a set of PEM-encoded data from a Vec<u8>
 ///
 /// ```rust
@@ -468,6 +475,52 @@ pub fn parse<B: AsRef<[u8]>>(input: B) -> Result<Pem> {
 /// TTGsEtITid1ogAECIQDAaFl90ZgS5cMrL3wCeatVKzVUmuJmB/VAmlLFFGzK0QIh
 /// ANJGc7AFk4fyFD/OezhwGHbWmo/S+bfeAiIh2Ss2FxKJ
 /// -----END CERTIFICATE-----
+/// ";
+///  let SAMPLE_STRING: Vec<u8> = SAMPLE.into();
+///
+///  let pems = parse_many(SAMPLE_STRING).unwrap();
+///  assert_eq!(pems.len(), 2);
+///  assert_eq!(pems[0].tag(), "INTERMEDIATE CERT");
+///  assert_eq!(pems[1].tag(), "CERTIFICATE");
+/// ```
+///
+/// # Example: parsing invalid input data without any PEM-encoded data returns empty vec
+///
+/// ```rust
+/// use pem::parse_many;
+///
+/// const SAMPLE: &'static str = "invalid";
+///  let SAMPLE_STRING: Vec<u8> = SAMPLE.into();
+///
+///  let pems = parse_many(SAMPLE_STRING).expect("Does NOT error!");
+///  assert_eq!(pems.len(), 0);
+/// ```
+///
+/// # Example: parse a set of PEM-encoded data from a String with garbage parts
+///
+/// ```rust
+///
+/// use pem::parse_many;
+///
+/// const SAMPLE: &'static str = "invalid data Hello, World! invalid data-----BEGIN INTERMEDIATE CERT-----
+/// MIIBPQIBAAJBAOsfi5AGYhdRs/x6q5H7kScxA0Kzzqe6WI6gf6+tc6IvKQJo5rQc
+/// dWWSQ0nRGt2hOPDO+35NKhQEjBQxPh/v7n0CAwEAAQJBAOGaBAyuw0ICyENy5NsO
+/// 2gkT00AWTSzM9Zns0HedY31yEabkuFvrMCHjscEF7u3Y6PB7An3IzooBHchsFDei
+/// AAECIQD/JahddzR5K3A6rzTidmAf1PBtqi7296EnWv8WvpfAAQIhAOvowIXZI4Un
+/// DXjgZ9ekuUjZN+GUQRAVlkEEohGLVy59AiEA90VtqDdQuWWpvJX0cM08V10tLXrT
+/// TTGsEtITid1ogAECIQDAaFl90ZgS5cMrL3wCeatVKzVUmuJmB/VAmlLFFGzK0QIh
+/// ANJGc7AFk4fyFD/OezhwGHbWmo/S+bfeAiIh2Ss2FxKJ
+/// -----END INTERMEDIATE CERT-----
+///  This is a garbage section of the input string!
+/// -----BEGIN CERTIFICATE-----
+/// MIIBPQIBAAJBAOsfi5AGYhdRs/x6q5H7kScxA0Kzzqe6WI6gf6+tc6IvKQJo5rQc
+/// dWWSQ0nRGt2hOPDO+35NKhQEjBQxPh/v7n0CAwEAAQJBAOGaBAyuw0ICyENy5NsO
+/// 2gkT00AWTSzM9Zns0HedY31yEabkuFvrMCHjscEF7u3Y6PB7An3IzooBHchsFDei
+/// AAECIQD/JahddzR5K3A6rzTidmAf1PBtqi7296EnWv8WvpfAAQIhAOvowIXZI4Un
+/// DXjgZ9ekuUjZN+GUQRAVlkEEohGLVy59AiEA90VtqDdQuWWpvJX0cM08V10tLXrT
+/// TTGsEtITid1ogAECIQDAaFl90ZgS5cMrL3wCeatVKzVUmuJmB/VAmlLFFGzK0QIh
+/// ANJGc7AFk4fyFD/OezhwGHbWmo/S+bfeAiIh2Ss2FxKJ
+/// -----END CERTIFICATE-----invalid data Goodbye, World! invalid data
 /// ";
 ///  let SAMPLE_STRING: Vec<u8> = SAMPLE.into();
 ///
